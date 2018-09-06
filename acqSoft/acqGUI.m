@@ -1,5 +1,5 @@
 function acqGUI(arguments)
-
+%TrialGithub
 % Assigns value to input variable 'arguments' in case it is initialized for the first time
 if nargin == 0
     arguments = 'init';
