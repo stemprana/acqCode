@@ -78,7 +78,7 @@ expP.movieDurationFrames = round(expP.stimduration * expP.result.frameRate);%_R
 expP.movieFrameIndices = mod(0:(expP.movieDurationFrames-1), expP.numFrames) + 1;%_R
 
 Screen('Preference', 'VBLTimestampingMode', -1);
-Screen('Preference','SkipSyncTests', 0);
+Screen('Preference','SkipSyncTests', 1);
 screenP.w = Screen('OpenWindow',0);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
@@ -160,7 +160,7 @@ end
 
 
 
-triggerMode = 'External';
+triggerMode = 'Internal';
 
 if strcmp(triggerMode,'External')
     %DAQ section
@@ -182,7 +182,7 @@ if strcmp(triggerMode,'External')
    
 elseif strcmp(triggerMode,'Internal')
     
-    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 3, 'Period',5,'ExecutionMode','fixedRate');
+    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 5, 'Period',5,'ExecutionMode','fixedRate');
     start(timerObj)
     
     

@@ -1,4 +1,4 @@
-function singleAc(obj, event, s0_c,outputMat,ax_0)
+function singleAc_GUI(obj, event, s0_c,outputMat,ax_0)
 
 data = [];
 queueOutputData(s0_c,outputMat);
