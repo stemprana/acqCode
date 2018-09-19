@@ -160,7 +160,7 @@ end
 
 
 
-triggerMode = 'External';
+triggerMode = 'Internal';
 
 if strcmp(triggerMode,'External')
     %DAQ section
@@ -182,7 +182,7 @@ if strcmp(triggerMode,'External')
    
 elseif strcmp(triggerMode,'Internal')
     
-    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 3, 'Period',5,'ExecutionMode','fixedRate');
+    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 2, 'Period',5,'ExecutionMode','fixedRate');
     start(timerObj)
     
     
