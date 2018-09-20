@@ -1,25 +1,25 @@
 function triggerScreen()
 %Needs to be a function so I can further define a callback funcion
 
-
 % triggerScreen:
-%   _ Sets up a set of stimuli o show based on Orientation and Contrast parameters
-%   _ Display them upon listening an input line from the DAQ using an extremely long on sesion    
+%   _ Sets up a set of stimuli to show based on Orientation and Contrast parameters
+%   _ Display them upon listening an input line from the DAQ using an extremely long session    
 
 
 %Visual stim section %-----------------------------------------------
 
 % Defining input parameters----------------------
 %   _for different trials whihin the experiment
-trialsP.orientations = 0:90:360;%_R
+trialsP.orientations = [0,45,90];%_R
 trialsP.sizes = [20];%_R
 %   _for this particular experiment 
 %       _likely to change
+
+expP.isi = 1;% _R %parameter only useful if we want trigger using timer
 expP.DScreen = 5;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
 expP.xposStim = 0; %_R not found
 expP.yposStim = -8;%_R not found
 expP.result.repetitions  =  2; %_R
-expP.isi = 1;% _R
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
 expP.VertScreenSize = 6.5;% vertical size of the screen in cm %_R
@@ -119,21 +119,29 @@ end
     function updateScrnFnc(src,event)
         
         
-        
-        
+        if strcmp(triggerMode,'Internal') 
+            boolDisp = 1;
+        elseif strcmp(triggerMode,'External')
+            boolDisp = (event.Data(end)-event.Data(1))>4;
+        end
         %If ... "starting a new repetition"
             %trkVars.tmpcond = conds;
-        if (event.Data(end)-event.Data(1))>4
+        if boolDisp
             
             disp('pulse here')
             
-            DaqDOut(dq,1,255);           
-            DaqDOut(dq,1,0);
+            if strcmp(triggerMode,'External')
+                DaqDOut(dq,1,255);           
+                DaqDOut(dq,1,0);
+            end
+            
             tic
             displayGrtn(tex,expP,screenP)
             toc
-            DaqDOut(dq,1,255);          
-            DaqDOut(dq,1,0);
+            if strcmp(triggerMode,'External')
+                DaqDOut(dq,1,255);          
+                DaqDOut(dq,1,0);
+            end
             
             thiscondind = ceil(rand*size(trkVars.tmpcond,2));%_L
             thiscond = trkVars.tmpcond(:,thiscondind);%_L
@@ -152,36 +160,36 @@ end
 
 
 
+triggerMode = 'Internal';
 
+if strcmp(triggerMode,'External')
+    %DAQ section
+    %------------------------------------------------------------
 
+    %DAQ
+    s0 = daq.createSession('ni');
+    [ch_AI,idx_AI] = s0.addAnalogInputChannel('Dev2',0,'Voltage');
+    s0.NotifyWhenDataAvailableExceeds = 50;
+    s0.DurationInSeconds = 600;
+    s0.Rate = 20000;
+    lh = addlistener(s0,'DataAvailable',@(src,event) updateScrnFnc(src,event));
 
+    %Notifying acquisition
+    dq = DaqFind;
+    err = DaqDConfigPort(dq,1,0);
 
-%DAQ section
-window =[];
-vbl = [];
-waitframes = [];
-ifi = [];
-%DAQ
-s0 = daq.createSession('ni');
-[ch_AI,idx_AI] = s0.addAnalogInputChannel('Dev2',0,'Voltage');
-%addTriggerConnection(s0,'External','Dev2/PFI0','StartTrigger')
-
-s0.NotifyWhenDataAvailableExceeds = 50;
-s0.DurationInSeconds = 600;
-s0.Rate = 20000;
-
-lh = addlistener(s0,'DataAvailable',@(src,event) updateScrnFnc(src,event));
-
-%Notifying end of acquisition
-dq = DaqFind;
-err = DaqDConfigPort(dq,1,0);
-
-s0.startForeground();
-
-
+    s0.startForeground();
+   
+elseif strcmp(triggerMode,'Internal')
+    
+    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 5, 'Period',2,'ExecutionMode','fixedRate');
+    start(timerObj)
+    
+    
+end
 %------------------------------------------------- 
 %Functions for closing screens
-Screen('CloseAll');
-Priority(0);
+%Screen('CloseAll');
+%Priority(0);
 %--------------------------------------------------------------------
 end
