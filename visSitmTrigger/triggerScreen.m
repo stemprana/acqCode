@@ -10,7 +10,7 @@ function triggerScreen()
 
 % Defining input parameters----------------------
 %   _for different trials whihin the experiment
-trialsP.orientations = [0,45];%_R
+trialsP.orientations = [0,45,90];%_R
 trialsP.sizes = [20];%_R
 %   _for this particular experiment 
 %       _likely to change
@@ -182,7 +182,7 @@ if strcmp(triggerMode,'External')
    
 elseif strcmp(triggerMode,'Internal')
     
-    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 2, 'Period',5,'ExecutionMode','fixedRate');
+    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 5, 'Period',2,'ExecutionMode','fixedRate');
     start(timerObj)
     
     
