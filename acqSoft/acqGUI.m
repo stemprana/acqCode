@@ -94,6 +94,9 @@ switch arguments
         % Pushbutton for updating digital outputvalues
         uicontrol(guiS.an.fig_h,'Style','pushbutton','units','normalized','String','updateAOs','position',[ 0.75 0.75 0.12 0.08],'Callback','acqGUI(''update_AO'')');
 
+%         % Figure panel for creating msocket server window
+        guiS.ms.fig_h = figure ('NumberTitle','off','position',[1000 600 750 300]);
+        uicontrol(guiS.ms.fig_h,'Style','pushbutton','units','normalized','String','createMSocketServer','position',[ 0.75 0.75 0.12 0.08],'Callback','acqGUI(''create_msocket_server'')');
 
         %Setup DAQ - 
         % Create session for NI acquisition
@@ -114,8 +117,6 @@ switch arguments
         set(0,'currentfigure',guiS.main_fig)
         handles = {'main_fig',guiS,expS,s0};
         set(gcf,'UserData',handles);
-
-
 
 
 
