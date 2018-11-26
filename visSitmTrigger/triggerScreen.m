@@ -10,7 +10,7 @@ function triggerScreen()
 
 % Defining input parameters----------------------
 %   _for different trials whihin the experiment
-trialsP.orientations = [0,45,90];%_R
+trialsP.orientations = [0,45,90,135,180];%_R
 trialsP.sizes = [20];%_R
 %   _for this particular experiment 
 %       _likely to change
@@ -19,7 +19,7 @@ expP.isi = 1;% _R %parameter only useful if we want trigger using timer
 expP.DScreen = 5;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
 expP.xposStim = 0; %_R not found
 expP.yposStim = -8;%_R not found
-expP.result.repetitions  =  2; %_R
+expP.result.repetitions  =  1; %_R
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
 expP.VertScreenSize = 6.5;% vertical size of the screen in cm %_R
@@ -160,7 +160,7 @@ end
 
 
 
-triggerMode = 'Internal';
+triggerMode = 'External';
 
 if strcmp(triggerMode,'External')
     %DAQ section
