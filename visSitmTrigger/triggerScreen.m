@@ -10,7 +10,7 @@ function triggerScreen()
 
 % Defining input parameters----------------------
 %   _for different trials whihin the experiment
-trialsP.orientations = [0,45,90,135,180];%_R
+trialsP.orientations = [0,45,90];%_R
 trialsP.sizes = [20];%_R
 %   _for this particular experiment 
 %       _likely to change
@@ -19,7 +19,7 @@ expP.isi = 1;% _R %parameter only useful if we want trigger using timer
 expP.DScreen = 5;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
 expP.xposStim = 0; %_R not found
 expP.yposStim = -8;%_R not found
-expP.result.repetitions  =  1; %_R
+expP.result.repetitions  =  3; %_R
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
 expP.VertScreenSize = 6.5;% vertical size of the screen in cm %_R
@@ -79,7 +79,7 @@ expP.movieFrameIndices = mod(0:(expP.movieDurationFrames-1), expP.numFrames) + 1
 
 Screen('Preference', 'VBLTimestampingMode', -1);
 Screen('Preference','SkipSyncTests', 0);
-screenP.w = Screen('OpenWindow',0);%_R
+screenP.w = Screen('OpenWindow',0,0,[50 50 1000 1000]);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
 
@@ -98,7 +98,7 @@ Screen('Flip',screenP.w);
 %------------------------------------------------- 
 % Tracking variables
 t0  =  GetSecs;
-trkVars.trnum = 0;
+trkVars.repNum = 1;
 trkVars.tmpcond = conds; %_R    
 %--------------------------------------------------------------------
 
@@ -124,8 +124,10 @@ end
         elseif strcmp(triggerMode,'External')
             boolDisp = (event.Data(end)-event.Data(1))>4;
         end
-        %If ... "starting a new repetition"
-            %trkVars.tmpcond = conds;
+
+        
+
+        
         if boolDisp
             
             disp('pulse here')
@@ -142,7 +144,15 @@ end
                 DaqDOut(dq,1,255);          
                 DaqDOut(dq,1,0);
             end
-            
+            % Starting a new repetition - need to repopulate trkVars.tmpcond
+            % and refresh current repetition
+            if isempty(trkVars.tmpcond)
+               disp(trkVars.repNum) 
+               trkVars.tmpcond = conds;
+               trkVars.repNum = trkVars.repNum + 1;
+               
+            end
+        
             thiscondind = ceil(rand*size(trkVars.tmpcond,2));%_L
             thiscond = trkVars.tmpcond(:,thiscondind);%_L
             trkVars.tmpcond(:,thiscondind)  =  [];%_L
@@ -153,6 +163,7 @@ end
             [x,y] = meshgrid([-thiswidth:thiswidth],[-thiswidth:thiswidth]);%_I
         
             tex = makingTex(thisdeg,ii,thiswidth,x,y,expP,screenP);
+            
         
              
         end
