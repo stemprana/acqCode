@@ -79,7 +79,7 @@ expP.movieFrameIndices = mod(0:(expP.movieDurationFrames-1), expP.numFrames) + 1
 
 Screen('Preference', 'VBLTimestampingMode', -1);
 Screen('Preference','SkipSyncTests', 0);
-screenP.w = Screen('OpenWindow',0,0,[50 50 1000 1000]);%_R
+screenP.w = Screen('OpenWindow',0);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
 
@@ -144,14 +144,7 @@ end
                 DaqDOut(dq,1,255);          
                 DaqDOut(dq,1,0);
             end
-            % Starting a new repetition - need to repopulate trkVars.tmpcond
-            % and refresh current repetition
-            if isempty(trkVars.tmpcond)
-               disp(trkVars.repNum) 
-               trkVars.tmpcond = conds;
-               trkVars.repNum = trkVars.repNum + 1;
-               
-            end
+
         
             thiscondind = ceil(rand*size(trkVars.tmpcond,2));%_L
             thiscond = trkVars.tmpcond(:,thiscondind);%_L
@@ -164,7 +157,29 @@ end
         
             tex = makingTex(thisdeg,ii,thiswidth,x,y,expP,screenP);
             
-        
+            [~,~,keyCode] = KbCheck;
+            if keyCode(escapeKey)
+                    %Functions for closing screens
+                    Screen('CloseAll');
+                    Priority(0);
+                    stop(s0)
+            end
+            % Starting a new repetition - need to repopulate trkVars.tmpcond
+            % and refresh current repetition
+            if isempty(trkVars.tmpcond)
+               disp(trkVars.repNum) 
+               trkVars.tmpcond = conds;
+               trkVars.repNum = trkVars.repNum + 1;
+               % Close everything when done with repetitions
+               if (trkVars.repNum > expP.result.repetitions)
+                    %Functions for closing screens
+                    Screen('CloseAll');
+                    Priority(0);
+                    stop(s0)
+               end
+               
+            end
+            
              
         end
     end
@@ -172,6 +187,9 @@ end
 
 
 triggerMode = 'External';
+
+%Set escape key
+escapeKey = KbName('ESC');
 
 if strcmp(triggerMode,'External')
     %DAQ section
@@ -181,7 +199,8 @@ if strcmp(triggerMode,'External')
     s0 = daq.createSession('ni');
     [ch_AI,idx_AI] = s0.addAnalogInputChannel('Dev2',0,'Voltage');
     s0.NotifyWhenDataAvailableExceeds = 50;
-    s0.DurationInSeconds = 600;
+    s0.DurationInSeconds = 200;
+    %s0.IsContinuous = true;
     s0.Rate = 20000;
     lh = addlistener(s0,'DataAvailable',@(src,event) updateScrnFnc(src,event));
 
@@ -199,8 +218,6 @@ elseif strcmp(triggerMode,'Internal')
     
 end
 %------------------------------------------------- 
-%Functions for closing screens
-%Screen('CloseAll');
-%Priority(0);
+
 %--------------------------------------------------------------------
 end
