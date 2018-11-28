@@ -3,22 +3,25 @@ function triggerScreen()
 
 % triggerScreen:
 %   _ Sets up a set of stimuli to show based on Orientation and Contrast parameters
-%   _ Display them upon listening an input line from the DAQ using an extremely long session    
+%   _ Display them upon listening an input line from the DAQ using an extremely long session
 
+% Set triggerMode 
+%   _ 'Internal' --> Use of global timer
+%   _ 'External' --> Triggered by TTL in analog input #0
+triggerMode = 'External';
 
-%Visual stim section %-----------------------------------------------
-
+%Visual stim section -----------------------------------------------------
 % Defining input parameters----------------------
-%   _for different trials whihin the experiment
+%   _for different trials whithin the experiment
 trialsP.orientations = [0,45,90];%_R
-trialsP.sizes = [20];%_R
+trialsP.sizes = [20,40];%_R
 %   _for this particular experiment 
 %       _likely to change
 
 expP.isi = 1;% _R %parameter only useful if we want trigger using timer
 expP.DScreen = 5;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
 expP.xposStim = 0; %_R not found
-expP.yposStim = -8;%_R not found
+expP.yposStim = 0;%_R not found
 expP.result.repetitions  =  3; %_R
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
@@ -52,9 +55,10 @@ if ~isempty(find(expP.x0<1)) | ~isempty(find(expP.y0<1))
 end
 %------------------------------------------------
 %Setting trials ---------------------------------
+% Create array with combinations of orientations and size for each trial
 
-%SGT_ Erase light dimension in nConds because no light stim is going to be
-%given. Changes in nConds and conds
+
+
 nConds  =  [length(trialsP.orientations) length(trialsP.sizes)]; % _L
 allConds  =  prod(nConds); % _L 
 repPerCond  =  allConds./nConds; % _L
@@ -116,36 +120,35 @@ for i = 1:expP.numFrames
     tex(i) = screenP.BG;
 end
 
-    function updateScrnFnc(src,event)
-        
-        
+    function updateScrnFnc(src,event)        
+    % This function can be called from two sources:
+    %   > Listener callback [triggerMode == 'External']. Continuously call this function
+    %   > Timer callback [triggerMode == 'Internal']. Call this funtion in an episodic way
         if strcmp(triggerMode,'Internal') 
             boolDisp = 1;
         elseif strcmp(triggerMode,'External')
+            % Detects if a transition low to high happened
             boolDisp = (event.Data(end)-event.Data(1))>4;
-        end
-
+        end       
         
-
-        
-        if boolDisp
-            
-            disp('pulse here')
+    % Actual code to execute        
+        if boolDisp            
+            disp('pulse here') 
             
             if strcmp(triggerMode,'External')
+            % Output TTL to get stim start
                 DaqDOut(dq,1,255);           
                 DaqDOut(dq,1,0);
-            end
-            
+            end            
             tic
             displayGrtn(tex,expP,screenP)
-            toc
+            stimMeasuredDur = toc;
             if strcmp(triggerMode,'External')
+            % Output TTL to get stim end
                 DaqDOut(dq,1,255);          
                 DaqDOut(dq,1,0);
-            end
-
-        
+            end      
+            
             thiscondind = ceil(rand*size(trkVars.tmpcond,2));%_L
             thiscond = trkVars.tmpcond(:,thiscondind);%_L
             trkVars.tmpcond(:,thiscondind)  =  [];%_L
@@ -153,11 +156,11 @@ end
             thissize = thiscond(2);%_L 
             ii = find(trialsP.sizes==thissize);%_I 
             thiswidth = expP.PatchRadiusPix(ii);%_I
-            [x,y] = meshgrid([-thiswidth:thiswidth],[-thiswidth:thiswidth]);%_I
-        
-            tex = makingTex(thisdeg,ii,thiswidth,x,y,expP,screenP);
+            [x,y] = meshgrid([-thiswidth:thiswidth],[-thiswidth:thiswidth]);%_I        
+            tex = makingTex(thisdeg,ii,thiswidth,x,y,expP,screenP); 
             
-            [~,~,keyCode] = KbCheck;
+            [~,~,keyCode] = KbCheck;        
+            
             if keyCode(escapeKey)
                     %Functions for closing screens
                     Screen('CloseAll');
@@ -176,17 +179,14 @@ end
                     Screen('CloseAll');
                     Priority(0);
                     stop(s0)
-               end
-               
-            end
-            
-             
+               end               
+            end          
         end
     end
 
 
 
-triggerMode = 'External';
+
 
 %Set escape key
 escapeKey = KbName('ESC');
