@@ -14,7 +14,7 @@ triggerMode = 'External';
 % Defining input parameters----------------------
 %   _for different trials whithin the experiment
 trialsP.orientations = [0,45,90];%_R
-trialsP.sizes = [20,40];%_R
+trialsP.sizes = [20];%_R
 %   _for this particular experiment 
 %       _likely to change
 
@@ -28,8 +28,6 @@ expP.contrast  = 1; % _R
 expP.VertScreenSize = 6.5;% vertical size of the screen in cm %_R
 %       _unlikely to change
 expP.gf = 5;%.Gaussian width factor 5: reveal all .5 normal fall off %_R
-%Definition of frameRate here not necessary because it is taken again from the monitor
-expP.result.frameRate = 60; % _R
 expP.result.numFrames = 300;% _R not found 
 expP.Bcol = 128; % Background 0 black, 255 white  _R
 expP.method = 'symmetric'; % _R
@@ -55,46 +53,47 @@ if ~isempty(find(expP.x0<1)) | ~isempty(find(expP.y0<1))
 end
 %------------------------------------------------
 %Setting trials ---------------------------------
-% Create array with combinations of orientations and size for each trial
+% Create array with combinations of orientations and size for each trial - 28NOV2018
+[all_Orient,all_Sizes] = meshgrid(trialsP.orientations,trialsP.sizes);
+combNum = numel(trialsP.orientations)*numel(trialsP.sizes);
+conds = [reshape(all_Orient,[1,combNum]) ; reshape(all_Sizes,[1,combNum])];
 
-
-
-nConds  =  [length(trialsP.orientations) length(trialsP.sizes)]; % _L
-allConds  =  prod(nConds); % _L 
-repPerCond  =  allConds./nConds; % _L
-conds  =  [	reshape(repmat(trialsP.orientations,repPerCond(1),1)',1,allConds);
-    reshape((trialsP.sizes'*ones(1,allConds/(nConds(2))))',1,allConds);];
     
 %SGT_ WARNING Control condition was deleted
 %------------------------------------------------- 
-%Setting up the screen----------------------------
+%Setting up the screen---------------------------- 
+% 'Break and issue an eror message if the installed Psychtoolbox is not based on OpenGL or Screen() is not working properly.'
 AssertOpenGL;
 screens = Screen('Screens');%_L
 screenNumber = max(screens);%_L
-frameRate = Screen('FrameRate',screenNumber);% _L
-if(frameRate == 0)  %if MacOSX does not know the frame rate the 'FrameRate' will return 0.
-    frameRate = 60;
-end
-expP.result.frameRate  =  frameRate;%_R
-%Need to define here because frameRate is not given before
+expP.result.frameRate = Screen('FrameRate',screenNumber);% _L
+
+% numFrames -> Number of frames that consitutes one cycle
 expP.numFrames = ceil(expP.result.frameRate/expP.cyclesPerSecond);%_R
+% movieDurationFrames -> Total number of frames to show
 expP.movieDurationFrames = round(expP.stimduration * expP.result.frameRate);%_R
+% movieFrameIndices 
 expP.movieFrameIndices = mod(0:(expP.movieDurationFrames-1), expP.numFrames) + 1;%_R
 
+%'Disable all cleverness, take noisy timestamps. This is the behaviour you’d get from any other psychophysics toolkit, as far as we know.'
 Screen('Preference', 'VBLTimestampingMode', -1);
+% The followin is o avoid crashing
 Screen('Preference','SkipSyncTests', 0);
-screenP.w = Screen('OpenWindow',0);%_R
+
+% Open window to how stimuli
+screenP.w = Screen('OpenWindow',0,0,[50 50 200 200]);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
 
+% Gamma table
 load('GammaTable.mat');
 CT = (ones(3,1)*correctedTable(:,2)')'/255;% _L
 Screen('LoadNormalizedGammaTable',screenP.w, CT);
 
 %Drawing of background texture
 screenP.BG = Screen('MakeTexture', screenP.w, expP.bg);%_R
-
 Screen('DrawTexture',screenP.w, screenP.BG);
+% Setting text formattin , but up to now no text is being shown
 Screen('TextFont',screenP.w, 'Courier New');
 Screen('TextSize',screenP.w, 14);
 Screen('TextStyle', screenP.w, 1+2);
@@ -132,7 +131,8 @@ end
         end       
         
     % Actual code to execute        
-        if boolDisp            
+        if boolDisp  
+            
             disp('pulse here') 
             
             if strcmp(triggerMode,'External')
@@ -180,7 +180,8 @@ end
                     Priority(0);
                     stop(s0)
                end               
-            end          
+            end
+            
         end
     end
 
