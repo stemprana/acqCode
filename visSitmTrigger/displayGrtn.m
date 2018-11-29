@@ -1,8 +1,8 @@
 %UPDATED180225
 function displayGrtn(tex,expP,screenP)      
 %Function displayGrtn has been substantially changed from original           
-            for i = 1:expP.movieDurationFrames
-                Screen('DrawTexture', screenP.w, tex(expP.movieFrameIndices(i)));
+            for i = 0:(expP.movieDurationFrames-1) % expP.movieDurationFrames -> all frames to show during he whole simulation
+                Screen('DrawTexture', screenP.w, tex(mod(i,expP.numFrames)+1));
                 Screen('Flip', screenP.w);                
             end          
             

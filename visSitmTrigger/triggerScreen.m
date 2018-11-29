@@ -72,8 +72,7 @@ expP.result.frameRate = Screen('FrameRate',screenNumber);% _L
 expP.numFrames = ceil(expP.result.frameRate/expP.cyclesPerSecond);%_R
 % movieDurationFrames -> Total number of frames to show
 expP.movieDurationFrames = round(expP.stimduration * expP.result.frameRate);%_R
-% movieFrameIndices 
-expP.movieFrameIndices = mod(0:(expP.movieDurationFrames-1), expP.numFrames) + 1;%_R
+
 
 %'Disable all cleverness, take noisy timestamps. This is the behaviour you’d get from any other psychophysics toolkit, as far as we know.'
 Screen('Preference', 'VBLTimestampingMode', -1);
@@ -81,7 +80,7 @@ Screen('Preference', 'VBLTimestampingMode', -1);
 Screen('Preference','SkipSyncTests', 0);
 
 % Open window to how stimuli
-screenP.w = Screen('OpenWindow',0,0,[50 50 200 200]);%_R
+screenP.w = Screen('OpenWindow',0,0,[50 50 400 400]);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
 
@@ -200,7 +199,7 @@ if strcmp(triggerMode,'External')
     s0 = daq.createSession('ni');
     [ch_AI,idx_AI] = s0.addAnalogInputChannel('Dev2',0,'Voltage');
     s0.NotifyWhenDataAvailableExceeds = 50;
-    s0.DurationInSeconds = 200;
+    s0.DurationInSeconds = 30;
     %s0.IsContinuous = true;
     s0.Rate = 20000;
     lh = addlistener(s0,'DataAvailable',@(src,event) updateScrnFnc(src,event));
