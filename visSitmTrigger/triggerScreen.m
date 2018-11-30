@@ -14,14 +14,14 @@ triggerMode = 'External';
 % Defining input parameters----------------------
 %   _for different trials whithin the experiment
 trialsP.orientations = [0,45,90];%_R
-trialsP.sizes = [20];%_R
+trialsP.sizes = [20,40];%_R
 %   _for this particular experiment 
 %       _likely to change
 
 expP.isi = 1;% _R %parameter only useful if we want trigger using timer
 expP.DScreen = 5;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
-expP.xposStim = 0; %_R not found
-expP.yposStim = 0;%_R not found
+expP.xposStim = 0; %_R In Dregrees, centered in 0
+expP.yposStim = 0;%_R In Degrees, centered in 0
 expP.result.repetitions  =  3; %_R
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
@@ -38,11 +38,17 @@ expP.prestimtimems  =  0; % _R
 expP.xRes = 1920; % _R
 expP.yRes = 1080; % _R
 %       _values set from pre-defined values
+
+% Degrees of the whole vertical screen
 expP.VertScreenDimDeg = atand(expP.VertScreenSize/expP.DScreen); % in visual degrees % _R not found
+% Amount of pixels per each degree
 expP.PixperDeg = expP.yRes/expP.VertScreenDimDeg; % _R
+% expP.sizes -> size in pixels/2; x0, y0 
 expP.PatchRadiusPix = ceil(trialsP.sizes.*expP.PixperDeg/2); % radius!! % _R
 expP.x0 = floor(expP.xRes/2 + expP.xposStim*expP.PixperDeg - trialsP.sizes.*expP.PixperDeg/2); % _R
 expP.y0 = floor(expP.yRes/2 - expP.yposStim*expP.PixperDeg - trialsP.sizes.*expP.PixperDeg/2); % _R
+
+% Make backgorund array 
 expP.bg = ones(expP.yRes,expP.xRes)*expP.Bcol;%_R
 
 
@@ -80,7 +86,7 @@ Screen('Preference', 'VBLTimestampingMode', -1);
 Screen('Preference','SkipSyncTests', 0);
 
 % Open window to how stimuli
-screenP.w = Screen('OpenWindow',0,0,[50 50 400 400]);%_R
+screenP.w = Screen('OpenWindow',0,0,[50 50 600 600]);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
 
@@ -148,11 +154,22 @@ end
                 DaqDOut(dq,1,0);
             end      
             
-            thiscondind = ceil(rand*size(trkVars.tmpcond,2));%_L
+            % Picking up random condition for each trial - Strategy at the beggining of each repetition we pass
+            % a new copy of the whole conditions which ar depleted randomly
+            % Pick random index from remaining conditions
+            thiscondind = randi(size(trkVars.tmpcond,2));%_L
+            % Select the picked condition and make it the current
             thiscond = trkVars.tmpcond(:,thiscondind);%_L
+            % Delete condition from array reducing it's size
             trkVars.tmpcond(:,thiscondind)  =  [];%_L
+            
+            % Retrieve direction and size for this condition
             thisdeg = thiscond(1);%_I
             thissize = thiscond(2);%_L 
+            
+            % Retrieve index for the specific size in the array -> Usefull for retrieving:
+            % Half size of grating in pixels [expP.PatchRadiusPix]
+            % Initial position in screen [expP.x0, expP.y0]
             ii = find(trialsP.sizes==thissize);%_I 
             thiswidth = expP.PatchRadiusPix(ii);%_I
             [x,y] = meshgrid([-thiswidth:thiswidth],[-thiswidth:thiswidth]);%_I        
