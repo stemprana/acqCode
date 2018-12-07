@@ -10,22 +10,32 @@ function triggerScreen()
 %   _ 'External' --> Triggered by TTL in analog input #0
 triggerMode = 'External';
 
+% Set up saving structure
+savePath = 'C:\Users\slmadesnik\Documents\SilvioLocalData\';
+saveName = '05Dic2018_9839_last';
+saveS = struct;
+saveS.stim.orientation = [];
+saveS.stim.size = [];
+saveS.stim.stimTimeStamp = [];
+saveS.stim.duration = [];
+
 %Visual stim section -----------------------------------------------------
 % Defining input parameters----------------------
 %   _for different trials whithin the experiment
-trialsP.orientations = [0,45,90];%_R
-trialsP.sizes = [20,40];%_R
+trialsP.orientations = [0:45:315];%_R
+trialsP.sizes = [35];%_R
 %   _for this particular experiment 
 %       _likely to change
 
 expP.isi = 1;% _R %parameter only useful if we want trigger using timer
-expP.DScreen = 5;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
+expP.DScreen = 7;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
 expP.xposStim = 0; %_R In Dregrees, centered in 0
 expP.yposStim = 0;%_R In Degrees, centered in 0
-expP.result.repetitions  =  3; %_R
+expP.result.repetitions  =  20; %_R
+expP.totalTrialsN = numel(trialsP.orientations)*numel(trialsP.sizes)*expP.result.repetitions;
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
-expP.VertScreenSize = 6.5;% vertical size of the screen in cm %_R
+expP.VertScreenSize = 6.3;% vertical size of the screen in cm %_R
 %       _unlikely to change
 expP.gf = 5;%.Gaussian width factor 5: reveal all .5 normal fall off %_R
 expP.result.numFrames = 300;% _R not found 
@@ -86,7 +96,7 @@ Screen('Preference', 'VBLTimestampingMode', -1);
 Screen('Preference','SkipSyncTests', 0);
 
 % Open window to how stimuli
-screenP.w = Screen('OpenWindow',0,0,[50 50 600 600]);%_R
+screenP.w = Screen('OpenWindow',0);%_R
 priorityLevel = MaxPriority(screenP.w);
 Priority(priorityLevel);
 
@@ -106,7 +116,7 @@ Screen('Flip',screenP.w);
 %------------------------------------------------- 
 % Tracking variables
 t0  =  GetSecs;
-trkVars.repNum = 1;
+trkVars.trialNum = 0;
 trkVars.tmpcond = conds; %_R    
 %--------------------------------------------------------------------
 
@@ -132,7 +142,9 @@ end
             boolDisp = 1;
         elseif strcmp(triggerMode,'External')
             % Detects if a transition low to high happened
-            boolDisp = (event.Data(end)-event.Data(1))>4;
+            flag_t = event.Data(end);             
+            boolDisp = (flag_t - flag_t_minus1) > 4;
+            flag_t_minus1 = flag_t;
         end       
         
     % Actual code to execute        
@@ -142,18 +154,25 @@ end
             
             if strcmp(triggerMode,'External')
             % Output TTL to get stim start
-                DaqDOut(dq,1,255);           
-                DaqDOut(dq,1,0);
-            end            
+                DaqDOut(dq,0,255);           
+                DaqDOut(dq,0,0);
+            end
+            stimTimeStamp = clock;
             tic
             displayGrtn(tex,expP,screenP)
             stimMeasuredDur = toc;
             if strcmp(triggerMode,'External')
             % Output TTL to get stim end
-                DaqDOut(dq,1,255);          
-                DaqDOut(dq,1,0);
+                DaqDOut(dq,0,255);          
+                DaqDOut(dq,0,0);
             end      
             
+            % Save parameters of stimulation            
+            saveS.stim.orientation = [saveS.stim.orientation, thisdeg];
+            saveS.stim.size = [saveS.stim.size, thissize];
+            saveS.stim.stimTimeStamp = [saveS.stim.stimTimeStamp; stimTimeStamp];
+            saveS.stim.duration = [saveS.stim.duration, stimMeasuredDur];
+
             % Picking up random condition for each trial - Strategy at the beggining of each repetition we pass
             % a new copy of the whole conditions which ar depleted randomly
             % Pick random index from remaining conditions
@@ -179,27 +198,38 @@ end
             
             if keyCode(escapeKey)
                     %Functions for closing screens
+                    save(strcat(savePath,saveName),'-struct','saveS')
                     Screen('CloseAll');
                     Priority(0);
-                    stop(s0)
+                    stop(s0)                    
             end
-            % Starting a new repetition - need to repopulate trkVars.tmpcond
-            % and refresh current repetition
-            if isempty(trkVars.tmpcond)
-               disp(trkVars.repNum) 
+            % Repopulate trkVars if it gets empty
+            if isempty(trkVars.tmpcond)               
                trkVars.tmpcond = conds;
-               trkVars.repNum = trkVars.repNum + 1;
-               % Close everything when done with repetitions
-               if (trkVars.repNum > expP.result.repetitions)
-                    %Functions for closing screens
-                    Screen('CloseAll');
-                    Priority(0);
-                    stop(s0)
-               end               
             end
+           
+            trkVars.trialNum = trkVars.trialNum + 1;    
+            disp(trkVars.trialNum)    
+            % Close everything when done with trials
+            if (trkVars.trialNum > expP.totalTrialsN)
+                %Functions for closing screens                
+                save(strcat(savePath,saveName),'-struct','saveS')
+                Screen('CloseAll');
+                Priority(0);
+                stop(s0)
+            end               
+          
             
         end
     end
+
+
+    % EVAN SOLUTION
+    %function queueData(src,event)
+    %    if ~boolean
+    %        src.queueOutputScans(zeros(90000,1));
+    %    end
+    %end
 
 
 
@@ -208,28 +238,45 @@ end
 %Set escape key
 escapeKey = KbName('ESC');
 
+%Set variables to save first control grating whihc are going to be overwritten
+thisdeg =-1;
+thissize=-1;
+
 if strcmp(triggerMode,'External')
     %DAQ section
     %------------------------------------------------------------
-
+    %Flag variable to be called in successive calls of updateScrnFunc
+    flag_t = 0;
+    flag_t_minus1 = 0;
     %DAQ
     s0 = daq.createSession('ni');
     [ch_AI,idx_AI] = s0.addAnalogInputChannel('Dev2',0,'Voltage');
-    s0.NotifyWhenDataAvailableExceeds = 50;
-    s0.DurationInSeconds = 30;
+    
+    %EVAN SOLUTION
+    %s0.addAnalogOutputChannel('Dev2',3,'Voltage');
+    %END EVAN SOLUTION
+    
+    s0.NotifyWhenDataAvailableExceeds = 1;
+    s0.DurationInSeconds = 1500;
+    %EVAN SOLUTION - DO NOT DEFINE ONE LONG SESSION - KEEP QUEING DATA
+    %s0.queueOuputData(zeros(90000,1));
+    %addlistener(s0,'DataRequired',@(src,event) queueData(src,event));
+    %END EVAN SOLUTION
+    
     %s0.IsContinuous = true;
-    s0.Rate = 20000;
+    s0.Rate = 1000;
     lh = addlistener(s0,'DataAvailable',@(src,event) updateScrnFnc(src,event));
-
+    
+    
     %Notifying acquisition
     dq = DaqFind;
-    err = DaqDConfigPort(dq,1,0);
+    err = DaqDConfigPort(dq,0,0);
 
     s0.startForeground();
    
 elseif strcmp(triggerMode,'Internal')
     
-    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 5, 'Period',2,'ExecutionMode','fixedRate');
+    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 5, 'Period',expP.isi,'ExecutionMode','fixedRate');
     start(timerObj)
     
     
