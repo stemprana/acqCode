@@ -12,7 +12,7 @@ triggerMode = 'External';
 
 % Set up saving structure
 savePath = 'C:\Users\slmadesnik\Documents\SilvioLocalData\';
-saveName = '05Dic2018_9839_last';
+saveName = 'whTEVER';
 saveS = struct;
 saveS.stim.orientation = [];
 saveS.stim.size = [];
@@ -23,19 +23,19 @@ saveS.stim.duration = [];
 % Defining input parameters----------------------
 %   _for different trials whithin the experiment
 trialsP.orientations = [0:45:315];%_R
-trialsP.sizes = [35];%_R
+trialsP.sizes = [30];%_R
 %   _for this particular experiment 
 %       _likely to change
 
 expP.isi = 1;% _R %parameter only useful if we want trigger using timer
-expP.DScreen = 7;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
+expP.DScreen = 8;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
 expP.xposStim = 0; %_R In Dregrees, centered in 0
 expP.yposStim = 0;%_R In Degrees, centered in 0
-expP.result.repetitions  =  20; %_R
+expP.result.repetitions  =  10; %_R
 expP.totalTrialsN = numel(trialsP.orientations)*numel(trialsP.sizes)*expP.result.repetitions;
 expP.stimduration = 1;% _R
 expP.contrast  = 1; % _R
-expP.VertScreenSize = 6.3;% vertical size of the screen in cm %_R
+expP.VertScreenSize = 8.6;% vertical size of the screen in cm %_R
 %       _unlikely to change
 expP.gf = 5;%.Gaussian width factor 5: reveal all .5 normal fall off %_R
 expP.result.numFrames = 300;% _R not found 
@@ -93,7 +93,7 @@ expP.movieDurationFrames = round(expP.stimduration * expP.result.frameRate);%_R
 %'Disable all cleverness, take noisy timestamps. This is the behaviour you’d get from any other psychophysics toolkit, as far as we know.'
 Screen('Preference', 'VBLTimestampingMode', -1);
 % The followin is o avoid crashing
-Screen('Preference','SkipSyncTests', 0);
+Screen('Preference','SkipSyncTests', 1);
 
 % Open window to how stimuli
 screenP.w = Screen('OpenWindow',0);%_R
