@@ -12,7 +12,7 @@ triggerMode = 'External';
 
 % Set up saving structure
 savePath = 'C:\Users\slmadesnik\Documents\SilvioLocalData\';
-saveName = '08Jan2019_C83A_empty_second';
+saveName = 'whTEVER';
 saveS = struct;
 saveS.stim.orientation = [];
 saveS.stim.size = [];
