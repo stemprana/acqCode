@@ -1,4 +1,5 @@
-function triggerScreen()
+function triggerScreen_retinotopy()
+%KEYDUMPER
 %Needs to be a function so I can further define a callback funcion
 
 % triggerScreen:
@@ -9,6 +10,16 @@ function triggerScreen()
 %   _ 'Internal' --> Use of global timer
 %   _ 'External' --> Triggered by TTL in analog input #0
 triggerMode = 'Internal';
+% Set excecution mode
+% _ 'Real' --> Real experiment
+% _ 'Demo' --> Demo, used while editing script to avoid bugs
+excecutionMode = 'Demo';
+% Set experiment 
+% _ 'Manual' --> Set sizes and position manually
+% _ 'Retinotopy' --> Cover visual field automatically
+experimentMode = 'Retinotopy';
+% Position and sizes are going to be computed to fill the vertical screen
+nGratings = 4;
 
 % Set up saving structure
 savePath = 'C:\Users\slmadesnik\Documents\SilvioLocalData\';
@@ -18,21 +29,26 @@ saveS.stim.orientation = [];
 saveS.stim.size = [];
 saveS.stim.stimTimeStamp = [];
 saveS.stim.duration = [];
-
+saveS.xPos = [];
+saveS.yPos = [];
 %Visual stim section -----------------------------------------------------
 % Defining input parameters----------------------
 %   _for different trials whithin the experiment
-trialsP.orientations = [0:45:315];%_R
-trialsP.sizes = [30];%_R
+trialsP.orientations = [0,45];%_R
+if strcmp(experimentMode,'Manual')
+    trialsP.sizes = [10];%_R
+    trialsP.x_pos = [-10,0,10]; % in Degrees
+    trialsP.y_pos = [-10,0,10]; % in Degrees
+end
 %   _for this particular experiment 
 %       _likely to change
 
 expP.isi = 2;% _R %parameter only useful if we want trigger using timer
 expP.DScreen = 8;%~~~~~~~!!!!!!!;    %distance of animal from screen in cm _R
-expP.xposStim = 0; %_R In Dregrees, centered in 0
-expP.yposStim = 0;%_R In Degrees, centered in 0
-expP.result.repetitions  =  10; %_R
-expP.totalTrialsN = numel(trialsP.orientations)*numel(trialsP.sizes)*expP.result.repetitions;
+expP.xposStim = -10; %_R In Dregrees, centered in 0
+expP.yposStim = -10;%_R In Degrees, centered in 0
+expP.result.repetitions  =  1; %_R
+
 expP.stimduration = 0.5;% _R
 expP.contrast  = 1; % _R
 expP.VertScreenSize = 8.6;% vertical size of the screen in cm %_R
@@ -53,28 +69,45 @@ expP.yRes = 1080; % _R
 expP.VertScreenDimDeg = atand(expP.VertScreenSize/expP.DScreen); % in visual degrees % _R not found
 % Amount of pixels per each degree
 expP.PixperDeg = expP.yRes/expP.VertScreenDimDeg; % _R
+% Assuming pixels are square and relationship holds compute size in horizontal degrees
+expP.HorScreenDimDeg = expP.xRes/expP.PixperDeg;
+
+
+% Define sizes and positions for retinotopy grid
+if strcmp(experimentMode,'Retinotopy')
+    % Size is going to be defined by vertical orientation of screen
+    trialsP.sizes = [floor(expP.VertScreenDimDeg/nGratings)];%_R    
+    % Get vertical positions for gratings
+    ver_screenExcess = rem(expP.VertScreenDimDeg,trialsP.sizes);
+    trialsP.y_pos = ([1:nGratings]*trialsP.sizes-trialsP.sizes/2+ver_screenExcess/2)-expP.VertScreenDimDeg/2; % in Degrees
+    % Get maximal number of gratings that fit horizontally into screen -
+    % assumes pixels are square
+    hor_nGratings = floor(expP.xRes/(trialsP.sizes*expP.PixperDeg)); 
+    hor_screenExcess = rem(expP.HorScreenDimDeg,trialsP.sizes);% In degrees
+    % Get horizontal position for gratings
+    trialsP.x_pos = ([1:hor_nGratings]*trialsP.sizes-trialsP.sizes/2+hor_screenExcess/2)-expP.HorScreenDimDeg/2; % in Degrees
+    
+end
+
+
+
+
+
 % expP.sizes -> size in pixels/2; x0, y0 
 expP.PatchRadiusPix = ceil(trialsP.sizes.*expP.PixperDeg/2); % radius!! % _R
-expP.x0 = floor(expP.xRes/2 + expP.xposStim*expP.PixperDeg - trialsP.sizes.*expP.PixperDeg/2); % _R
-expP.y0 = floor(expP.yRes/2 - expP.yposStim*expP.PixperDeg - trialsP.sizes.*expP.PixperDeg/2); % _R
+
 
 % Make backgorund array 
 expP.bg = ones(expP.yRes,expP.xRes)*expP.Bcol;%_R
 
 
-% Catch error on size
-if ~isempty(find(expP.x0<1)) | ~isempty(find(expP.y0<1))
-    disp('too big for the monitor, dude! try other parameters');
-    return;
-end
+
 %------------------------------------------------
 %Setting trials ---------------------------------
 % Create array with combinations of orientations and size for each trial - 28NOV2018
-[all_Orient,all_Sizes] = meshgrid(trialsP.orientations,trialsP.sizes);
-combNum = numel(trialsP.orientations)*numel(trialsP.sizes);
-conds = [reshape(all_Orient,[1,combNum]) ; reshape(all_Sizes,[1,combNum])];
-
-    
+conds = combvec(trialsP.orientations, trialsP.sizes,trialsP.x_pos,trialsP.y_pos);
+combNum = size(conds,2);
+expP.totalTrialsN = combNum*expP.result.repetitions;    
 %SGT_ WARNING Control condition was deleted
 %------------------------------------------------- 
 %Setting up the screen---------------------------- 
@@ -172,6 +205,8 @@ end
             saveS.stim.size = [saveS.stim.size, thissize];
             saveS.stim.stimTimeStamp = [saveS.stim.stimTimeStamp; stimTimeStamp];
             saveS.stim.duration = [saveS.stim.duration, stimMeasuredDur];
+            saveS.xPos = [saveS.xPos, thisxposition];
+            saveS.yPos = [saveS.yPos, thisyposition];
 
             % Picking up random condition for each trial - Strategy at the beggining of each repetition we pass
             % a new copy of the whole conditions which ar depleted randomly
@@ -184,8 +219,17 @@ end
             
             % Retrieve direction and size for this condition
             thisdeg = thiscond(1);%_I
-            thissize = thiscond(2);%_L 
-            
+            thissize = thiscond(2);%_L
+            thisxposition = thiscond(3);%L
+            thisyposition = thiscond(4);%L
+            % Get position
+            expP.x0 = floor(expP.xRes/2 + thisxposition*expP.PixperDeg - trialsP.sizes.*expP.PixperDeg/2); % _R
+            expP.y0 = floor(expP.yRes/2 - thisyposition*expP.PixperDeg - trialsP.sizes.*expP.PixperDeg/2); % _R            
+            % Catch error on size
+            if ~isempty(find(expP.x0<1)) | ~isempty(find(expP.y0<1))
+                disp('too big for the monitor, dude! try other parameters');
+                return;
+            end
             % Retrieve index for the specific size in the array -> Usefull for retrieving:
             % Half size of grating in pixels [expP.PatchRadiusPix]
             % Initial position in screen [expP.x0, expP.y0]
@@ -198,10 +242,13 @@ end
             
             if keyCode(escapeKey)
                     %Functions for closing screens
-                    save(strcat(savePath,saveName),'-struct','saveS')
+                    
                     Screen('CloseAll');
                     Priority(0);
-                    stop(s0)                    
+                    if strcmp(excecutionMode,'Real')
+                        stop(s0);
+                        save(strcat(savePath,saveName),'-struct','saveS');
+                    end
             end
             % Repopulate trkVars if it gets empty
             if isempty(trkVars.tmpcond)               
@@ -213,10 +260,13 @@ end
             % Close everything when done with trials
             if (trkVars.trialNum > expP.totalTrialsN)
                 %Functions for closing screens                
-                save(strcat(savePath,saveName),'-struct','saveS')
+                
                 Screen('CloseAll');
                 Priority(0);
-                stop(s0)
+                if strcmp(excecutionMode,'Real')
+                    stop(s0);
+                    save(strcat(savePath,saveName),'-struct','saveS');
+                end
             end               
           
             
@@ -241,7 +291,8 @@ escapeKey = KbName('q');
 %Set variables to save first control grating whihc are going to be overwritten
 thisdeg =-1;
 thissize=-1;
-
+thisxposition = 99;
+thisyposition = 99;
 if strcmp(triggerMode,'External')
     %DAQ section
     %------------------------------------------------------------
@@ -276,7 +327,7 @@ if strcmp(triggerMode,'External')
    
 elseif strcmp(triggerMode,'Internal')
     
-    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', 5, 'Period',expP.isi,'ExecutionMode','fixedRate');
+    timerObj = timer('TimerFcn',@updateScrnFnc,'TaskstoExecute', expP.totalTrialsN+2, 'Period',expP.isi,'ExecutionMode','fixedRate');
     start(timerObj)
     
     
